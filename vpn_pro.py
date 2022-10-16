@@ -18,7 +18,9 @@ user_env_key = r"Environment"
 
 proxy_ip_key = "ProxyServer"
 proxy_enable_key = "ProxyEnable"
+proxy_non_key = "ProxyOverride"
 user_env_http_key = "HTTP_PROXY"
+user_env_https_key = "HTTP_PROXY"
 
 SZ_key = winreg.REG_SZ
 REG_key = winreg.REG_DWORD
@@ -77,10 +79,11 @@ def ProxyChange(ip="localhost", port="8080", login=None, password=None):
 
     http_proxy_value += ip_value if not proxy["auth"] else f"{ip_auth}@{ip_value}"
 
-    proxy["is_enable"] = "1"
     with winreg.OpenKey(main_key_dir, main_path, 0, access=main_access_key) as key:
-        winreg.SetValueEx(key, proxy_enable_key, 0, REG_key, int(proxy["is_enable"]))
+        winreg.SetValueEx(key, proxy_enable_key, 0, REG_key, int("1"))
+        proxy["is_enable"] = "1"
         winreg.SetValueEx(key, proxy_ip_key, 0, SZ_key, ip_value)
+        winreg.SetValueEx(key, proxy_non_key, 0, SZ_key, nonproxies)
 
     env_create_key(main_key_dir, user_env_key, "HTTP_PROXY", http_proxy_value)
 
@@ -90,17 +93,21 @@ def ProxyChange(ip="localhost", port="8080", login=None, password=None):
     return http_proxy_value
 
 
-def env_create_key(branch, subdir, envname, value, type=winreg.REG_SZ):
+def env_create_key(branch, subdir, envname, value="None", type=winreg.REG_SZ):
     envname = envname.upper()
     value = str(value)
 
     try:
-        key = winreg.OpenKeyEx(branch, subdir, 0, main_access_key)
+        key = winreg.OpenKeyEx(branch, subdir, 0, access=main_access_key)
         res = winreg.QueryValueEx(key, envname)
+        print("Key is already exist")
 
     except FileNotFoundError:
         winreg.SetValueEx(key, envname, 0, type, value)
-        subprocess.run('setx ttt t > nul', shell=True)
+        res = winreg.QueryValueEx(key, envname)
+
+    else:
+        print("Successfully created key: {env}//{value}".format(env=envname, value=value))
 
     finally:
         if key:
@@ -109,13 +116,16 @@ def env_create_key(branch, subdir, envname, value, type=winreg.REG_SZ):
 
 def ProxyOff():
     try:
-        key = winreg.OpenKeyEx(main_key_dir, main_path, 0, access=main_access_key)
-        winreg.SetValueEx(key, proxy_enable_key, 0, REG_key, "0")
-        key_env = winreg.OpenKeyEx(main_key_dir, user_env_key, 0, access=main_access_key)
+        key = winreg.OpenKey(main_key_dir, main_path, 0, access=main_access_key)
+
+        proxy["is_enable"] = "0"
+        winreg.SetValueEx(key, proxy_enable_key, 0, REG_key, int("0"))
+
+        key_env = winreg.OpenKey(main_key_dir, user_env_key, 0, access=main_access_key)
         winreg.DeleteValue(key_env, "HTTP_PROXY")
 
     except FileNotFoundError:
-        return print("Key is already deleted")
+        print("Key is already deleted")
 
     finally:
         winreg.CloseKey(key)
@@ -126,7 +136,10 @@ if __name__ == "__main__":
     port_con = input("PORT: ")
     login = input("LOGIN: ")
     password = input("PASSWORD: ")
-    ProxyChange(ip_con, port_con, login, password)
+    if login != "" and password != "":
+        ProxyChange(ip_con, port_con, None, None)
+    else:
+        ProxyChange(ip_con, port_con, login, password)
     input("ENTER TO DISABLE PROXY...")
-    # ProxyOff()
-    # print(os.environ.get("HTTP_PROXY"))
+    ProxyOff()
+    print(os.environ.get("HTTP_PROXY"))
