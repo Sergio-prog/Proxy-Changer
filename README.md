@@ -1,6 +1,4 @@
-<<<<<<< HEAD
 # Proxy-Changer-Ver.-0.3-
->>>>>>> 3ad59b5 (Updated to 0.3)
 
 Development Started: 10.10.22
 
