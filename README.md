@@ -1,10 +1,12 @@
-# Proxy-Changer-Ver.-0.21-
+<<<<<<< HEAD
+# Proxy-Changer-Ver.-0.3-
+>>>>>>> 3ad59b5 (Updated to 0.3)
 
-Developemnt Started: 10.10.22
+Development Started: 10.10.22
 
 Proxy Change Program (Temporary only for Windows)
 
-Temporary can take only HTTP proxy
+Can take HTTP, HTTPS, FTP proxy (Socks5/4a/4 soon.)
+Support proxy overrides, ENV variables
 
 (Work in progress...)
-
