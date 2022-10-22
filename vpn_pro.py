@@ -6,22 +6,21 @@ import winreg
 import os
 import platform
 import sys
+from log_config import log
 import subprocess
 
 main_access_key = winreg.KEY_ALL_ACCESS
 
 main_key_dir = winreg.HKEY_CURRENT_USER
+sec_key_dir = winreg.HKEY_LOCAL_MACHINE
 
-main_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings"  # HKEY_CURRENT_USER
-sys_env_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
-user_env_key = r"Environment"
+main_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings"  # HKEY_CURRENT_USER (
+sys_env_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"  # HKEY_LOCAL_MACHINE (key for sys env variables)
+user_env_key = r"Environment"  # HKEY_CURRENT_USER (for user env variables)
 
 proxy_ip_key = "ProxyServer"
 proxy_enable_key = "ProxyEnable"
 proxy_non_key = "ProxyOverride"
-user_env_http_key = "HTTP_PROXY"
-user_env_https_key = "HTTPS_PROXY"
-user_env_ftp_key = "FTP_PROXY"
 
 SZ_key = winreg.REG_SZ
 REG_key = winreg.REG_DWORD
@@ -42,8 +41,8 @@ platform = platform.system()
 print("Current Platform:", platform)
 
 if not platform.startswith("Windows"):
-    print("Sorry, but temporary this program only for Windows")
-    print("Exiting...")
+    log("Sorry, but temporary this program only for Windows", "critical", OSError)
+    log("Exiting...", "critical")
     sys.exit("Not Windows platform")
 
 
@@ -63,7 +62,9 @@ def ProxyChange(protocol="http", ip="localhost", port="8080", login=None, passwo
 
     global proxy
 
-    protocol = protocol.upper() if protocol in "http https ftp socks HTTP HTTPS FTP SOCKS" else "HTTP"
+    log(("Start func, params:", protocol, ip, port, login, password, proxy_exceptions), "debug")
+
+    protocol = protocol.upper() if protocol.lower() in "http https ftp socks" else "HTTP"
     proxy["protocol"] = protocol
     proxy["host"] = ip
     proxy["port"] = port
@@ -87,23 +88,22 @@ def ProxyChange(protocol="http", ip="localhost", port="8080", login=None, passwo
     protocol_proxy_value = "{}_PROXY".format(protocol.upper())
     proxy["protocol_prx"] = protocol_proxy_value
 
-    print(proxy["protocol"], protocol_proxy_value)
+    log(("Try to create proxy settings", http_proxy_value), "info")
 
-    with winreg.OpenKey(main_key_dir, main_path, 0, access=main_access_key) as key:
-        winreg.SetValueEx(key, proxy_enable_key, 0, REG_key, int("1"))
-        proxy["is_enable"] = "1"
+    env_edit_key(main_key_dir, main_path, proxy_enable_key, REG_key, int("1"))
+    proxy["is_enable"] = "1"
 
-        if protocol.lower() != "http":
-            winreg.SetValueEx(key, proxy_ip_key, 0, SZ_key, ip_value_prt)
-        else:
-            winreg.SetValueEx(key, proxy_ip_key, 0, SZ_key, ip_value)
+    if protocol.lower() != "http":
+        env_edit_key(main_key_dir, main_path, proxy_ip_key, SZ_key, ip_value_prt)
+    else:
+        env_edit_key(main_key_dir, main_path, proxy_ip_key, SZ_key, ip_value)
 
-        winreg.SetValueEx(key, proxy_non_key, 0, SZ_key, proxy["nonproxies"])
+    env_edit_key(main_key_dir, main_path, proxy_non_key, SZ_key, proxy["nonproxies"])
 
     env_create_key(main_key_dir, user_env_key, protocol_proxy_value, http_proxy_value)
 
     os.environ[protocol_proxy_value] = http_proxy_value
-    print(os.environ[protocol_proxy_value])
+    log(os.environ[protocol_proxy_value], "info")
 
     return http_proxy_value
 
@@ -115,13 +115,34 @@ def env_create_key(branch, subdir, envname, value="None", type=winreg.REG_SZ):
     try:
         key = winreg.OpenKeyEx(branch, subdir, 0, access=main_access_key)
         res = winreg.QueryValueEx(key, envname)
-        print("Key is already exist")
+        log("Key {key} is already exist, canceling create key operation. {res}".format(key=envname, res=res), "debug")
 
     except FileNotFoundError:
         winreg.SetValueEx(key, envname, 0, type, value)
         res = winreg.QueryValueEx(key, envname)
-        print("Successfully created key: {env}//{value}".format(env=envname, value=value))
+        log("Successfully created key: {env}//{value}. {res}".format(env=envname, value=value, res=res), "debug")
 
+    finally:
+        if key:
+            winreg.CloseKey(key)
+            log("Key is closed", "debug")
+
+
+def env_edit_key(branch=None, subdir=None, keyname=None, type=winreg.REG_SZ, value=None):
+    if type != winreg.REG_DWORD:
+        value = str(value)
+    else:
+        value = int(value)
+
+    if branch is not None:
+        key = winreg.OpenKeyEx(branch, subdir, 0, access=main_access_key)
+
+    try:
+        winreg.SetValueEx(key, keyname, 0, type, value)
+    except SystemExit:
+        log("Error edit key: {}//{}".format(keyname, value), "error")
+    else:
+        log("Successfully edit key: {}//{}".format(keyname, value), "debug")
     finally:
         if key:
             winreg.CloseKey(key)
@@ -132,20 +153,21 @@ def ProxyOff():
         key = winreg.OpenKey(main_key_dir, main_path, 0, access=main_access_key)
 
         proxy["is_enable"] = "0"
-        winreg.SetValueEx(key, proxy_enable_key, 0, REG_key, int("0"))
+        env_edit_key(main_key_dir, main_path, proxy_enable_key, REG_key, int("0"))
         assert winreg.QueryValueEx(key, proxy_enable_key)[0] == 0
 
         key_env = winreg.OpenKey(main_key_dir, user_env_key, 0, access=main_access_key)
         winreg.DeleteValue(key_env, proxy["protocol_prx"])
 
     except FileNotFoundError:
-        print("Key is already deleted")
+        log("Key {} is already deleted".format(proxy["protocol_prx"]), "debug")
 
     else:
-        print("All is okay")
+        log("Proxy Off operation success", "debug")
 
     finally:
         winreg.CloseKey(key)
+        log("Key is closed", "debug")
 
 
 if __name__ == "__main__":
@@ -153,7 +175,8 @@ if __name__ == "__main__":
     port_con = input("PORT: ")
     login = input("LOGIN: ")
     password = input("PASSWORD: ")
-    ProxyChange(protocol="http", ip=ip_con, port=port_con, login=login, password=password)
+    # no_proxy = input("Proxy Overrides (optional, separated by a comma): ")
+    ProxyChange(protocol="socks", ip=ip_con, port=port_con, login=login, password=password)
     input("ENTER TO DISABLE PROXY...")
     ProxyOff()
     # print(os.environ.get("HTTP_PROXY"))
