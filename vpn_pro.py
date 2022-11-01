@@ -1,20 +1,21 @@
 """
 THIS VERSION IS NOT FINAL RESULT.
 """
-
+import time
 import winreg
 import os
 import platform
 import sys
 from log_config import log
-import subprocess
+import threading
+import pyspeedtest
 
 main_access_key = winreg.KEY_ALL_ACCESS
 
 main_key_dir = winreg.HKEY_CURRENT_USER
 sec_key_dir = winreg.HKEY_LOCAL_MACHINE
 
-main_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings"  # HKEY_CURRENT_USER (
+main_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings"  # HKEY_CURRENT_USER (for proxy settings)
 sys_env_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"  # HKEY_LOCAL_MACHINE (key for sys env variables)
 user_env_key = r"Environment"  # HKEY_CURRENT_USER (for user env variables)
 
@@ -34,20 +35,21 @@ proxy = {
     "login": "",
     "password": "",
     "is_enable": "0",
-    "nonproxies": "localhost, 127.0.0.1"
+    "nonproxies": "<local>,localhost,127.0.0.1"
 }
 
 platform = platform.system()
-print("Current Platform:", platform)
 
-if not platform.startswith("Windows"):
-    log("Sorry, but temporary this program only for Windows", "critical", OSError)
-    log("Exiting...", "critical")
-    sys.exit("Not Windows platform")
+if platform.startswith("Windows"):
+    log("Current OS: {os}".format(os=platform), "debug")
+else:
+    log("Sorry, but temporary this program only for Windows", "critical", is_print=True)
+    log("Exiting...", "critical", is_print=True)
+    sys.exit("OSError: Wrong OS [{os}]. (Needs Windows platform)".format(os=platform))
 
 
-def ProxyChange(protocol="http", ip="localhost", port="8080", login=None, password=None,
-                proxy_exceptions="localhost, 127.0.0.1"):
+def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None, password: str = None,
+                proxy_exceptions="localhost, 127.0.0.1") -> str:
     """
 
     :param protocol: proxy protocol used (http, https, ftp)
@@ -56,7 +58,7 @@ def ProxyChange(protocol="http", ip="localhost", port="8080", login=None, passwo
     :param login: login proxy value
     :param password: password proxy value
     :param proxy_exceptions: Addresses that will be ignored by the proxy (separated by a comma)
-    :return: full http/https string (like: http://login:password@ip:port)
+    :return: full proxy string (with connection type) (like: https://login:password@ip:port)
 
     """
 
@@ -129,10 +131,10 @@ def env_create_key(branch, subdir, envname, value="None", type=winreg.REG_SZ):
 
 
 def env_edit_key(branch=None, subdir=None, keyname=None, type=winreg.REG_SZ, value=None):
-    if type != winreg.REG_DWORD:
-        value = str(value)
-    else:
+    if type == winreg.REG_DWORD:
         value = int(value)
+    else:
+        value = str(value)
 
     if branch is not None:
         key = winreg.OpenKeyEx(branch, subdir, 0, access=main_access_key)
@@ -170,13 +172,34 @@ def ProxyOff():
         log("Key is closed", "debug")
 
 
+# Test Function
+'''
+def is_okay_ping(is_print=True, delay=10):
+    time.sleep(delay)
+    try:
+        st = pyspeedtest.SpeedTest()
+        ping = st.download() / (2 ** 20)
+        log("\nPing: {0}".format(ping), "debug", is_print=is_print)
+
+        if ping >= norm_ping:
+            log("Looks like ping higher than normal value.", "debug", is_print=is_print)
+    except Exception:
+        log("Failed to find server for test connection. Try this: https://stackoverflow.com/questions/50999879/pyspeedtest-cannot-find-test-server",
+            "error")
+    except TimeoutError:
+        log("Looks like proxy is not working. Program can't send request for test connection.", "warn", is_print=True)
+
+    return ping
+'''
+
 if __name__ == "__main__":
+    log("Log init", "debug")
     ip_con = input("IP: ")
     port_con = input("PORT: ")
     login = input("LOGIN: ")
     password = input("PASSWORD: ")
-    # no_proxy = input("Proxy Overrides (optional, separated by a comma): ")
-    ProxyChange(protocol="socks", ip=ip_con, port=port_con, login=login, password=password)
+    no_proxy = input("Proxy Overrides (optional, separated by a comma): ")
+    ProxyChange(protocol="http", ip=ip_con, port=port_con, login=login, password=password)
     input("ENTER TO DISABLE PROXY...")
     ProxyOff()
-    # print(os.environ.get("HTTP_PROXY"))
+# print(os.environ.get("HTTP_PROXY"))

@@ -23,7 +23,7 @@ handler.setFormatter(formatter)
 logs.addHandler(handler)
 
 
-def log(message, mode, *args):
+def log(message, mode: str, is_print=False, *args):
     global logs
     if mode == 'info':
         logs.info(message, *args)
@@ -37,3 +37,8 @@ def log(message, mode, *args):
         logs.critical(message, *args)
     elif mode == 'exception':
         logs.exception(message, *args)
+    else:
+        logs.debug(message, *args)
+
+    if is_print:
+        print(message)
