@@ -1,14 +1,13 @@
 """
 THIS VERSION IS NOT FINAL RESULT.
 """
-import time
 import winreg
 import os
 import platform
 import sys
 from log_config import log
-import threading
-import pyspeedtest
+
+__ver__ = "0.37b"
 
 main_access_key = winreg.KEY_ALL_ACCESS
 
@@ -172,6 +171,15 @@ def ProxyOff():
         log("Key is closed", "debug")
 
 
+def ProxyCheck():
+    key = winreg.OpenKey(main_key_dir, main_path, 0, access=main_access_key)
+
+    value: int = winreg.QueryValueEx(key, proxy_enable_key)[0]
+    winreg.CloseKey(key)
+
+    return bool(value)
+
+
 # Test Function
 '''
 def is_okay_ping(is_print=True, delay=10):
@@ -199,7 +207,7 @@ if __name__ == "__main__":
     login = input("LOGIN: ")
     password = input("PASSWORD: ")
     no_proxy = input("Proxy Overrides (optional, separated by a comma): ")
-    ProxyChange(protocol="http", ip=ip_con, port=port_con, login=login, password=password)
+    ProxyChange(protocol="socks", ip=ip_con, port=port_con, login=login, password=password)
     input("ENTER TO DISABLE PROXY...")
     ProxyOff()
 # print(os.environ.get("HTTP_PROXY"))

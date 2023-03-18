@@ -1,3 +1,4 @@
 platform
+PyQt5
 
 # This file can used for installing python PIP packages.
