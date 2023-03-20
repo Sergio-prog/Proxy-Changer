@@ -48,7 +48,7 @@ else:
 
 
 def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None, password: str = None,
-                proxy_exceptions="localhost, 127.0.0.1") -> str:
+                proxy_exceptions: str = "localhost, 127.0.0.1") -> str:
     """
 
     :param protocol: proxy protocol used (http, https, ftp)
@@ -63,6 +63,7 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
 
     global proxy
 
+    log("Log init", "debug")
     log(("Start func, params:", protocol, ip, port, login, password, proxy_exceptions), "debug")
 
     protocol = protocol.upper() if protocol.lower() in "http https ftp socks" else "HTTP"
@@ -201,7 +202,6 @@ def is_okay_ping(is_print=True, delay=10):
 '''
 
 if __name__ == "__main__":
-    log("Log init", "debug")
     ip_con = input("IP: ")
     port_con = input("PORT: ")
     login = input("LOGIN: ")
