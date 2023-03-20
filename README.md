@@ -1,4 +1,6 @@
-# Proxy-Changer-Ver-0.37b-
+# Proxy-Changer
+
+Version: 0.37b
 
 Development Started: 10.10.22
 
@@ -8,6 +10,30 @@ Can take HTTP, HTTPS, FTP and (partially Socks5/4 proxy)
 
 Support proxy overrides, ENV variables, logs
 
-Beta version GUI support
+-------
+
+Main class file: vpn_pro.py
+
+File for GUI start: proxy.py
+
+File for logs configure: log_config.py
+
+# Example code
+
+```python
+from vpn_pro import ProxyChange, ProxyOff
+
+ProxyChange(protocol="https", ip='192.0.0.1', port='8080', login=login, password=password)
+input("ENTER TO DISABLE PROXY...")
+ProxyOff()
+```
+
+# Beta GUI version
+
+For GUI version, you need to start proxy.py
+
+```bash
+python proxy.py
+```
 
 (Work in progress...)
