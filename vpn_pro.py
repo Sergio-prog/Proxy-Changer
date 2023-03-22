@@ -6,8 +6,9 @@ import os
 import platform
 import sys
 from log_config import log
+from typing import NoReturn
 
-__ver__ = "0.37b"
+__ver__ = "0.37c"
 
 main_access_key = winreg.KEY_ALL_ACCESS
 
@@ -50,6 +51,7 @@ else:
 def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None, password: str = None,
                 proxy_exceptions: str = "localhost, 127.0.0.1") -> str:
     """
+    A function for changing the system proxy by editing the keys of the windows registry editor
 
     :param protocol: proxy protocol used (http, https, ftp)
     :param ip: IP proxy value
@@ -57,11 +59,12 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
     :param login: login proxy value
     :param password: password proxy value
     :param proxy_exceptions: Addresses that will be ignored by the proxy (separated by a comma)
-    :return: full proxy string (with connection type) (like: https://login:password@ip:port)
-
+    :returns: Full proxy string (with connection type) (like: https://login:password@ip:port)
     """
 
     global proxy
+
+    assert (ip and port)
 
     log("Log init", "debug")
     log(("Start func, params:", protocol, ip, port, login, password, proxy_exceptions), "debug")
@@ -79,9 +82,9 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
         ip_auth = ""
     else:
         proxy["auth"] = True
-        ip_auth = "{log}:{pas}".format(log=login, pas=password)
+        ip_auth = "{log}:{pas}".format(log=proxy["login"], pas=proxy["password"])
 
-    ip_value = "{host}:{port_p}".format(host=ip, port_p=port)
+    ip_value = "{host}:{port_p}".format(host=proxy["host"], port_p=proxy["port"])
     ip_value_prt = "{prt}={ip}".format(prt=protocol.lower(), ip=ip_value)
 
     http_proxy_value = "{prt}://".format(prt=protocol.lower())
@@ -110,7 +113,7 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
     return http_proxy_value
 
 
-def env_create_key(branch, subdir, envname, value="None", type=winreg.REG_SZ):
+def env_create_key(branch, subdir, envname, value="None", type=winreg.REG_SZ) -> NoReturn:
     envname = envname.upper()
     value = str(value)
 
@@ -130,7 +133,7 @@ def env_create_key(branch, subdir, envname, value="None", type=winreg.REG_SZ):
             log("Key is closed", "debug")
 
 
-def env_edit_key(branch=None, subdir=None, keyname=None, type=winreg.REG_SZ, value=None):
+def env_edit_key(branch=None, subdir=None, keyname=None, type=winreg.REG_SZ, value=None) -> NoReturn:
     if type == winreg.REG_DWORD:
         value = int(value)
     else:
@@ -150,7 +153,7 @@ def env_edit_key(branch=None, subdir=None, keyname=None, type=winreg.REG_SZ, val
             winreg.CloseKey(key)
 
 
-def ProxyOff():
+def ProxyOff() -> NoReturn:
     try:
         key = winreg.OpenKey(main_key_dir, main_path, 0, access=main_access_key)
 
@@ -172,7 +175,8 @@ def ProxyOff():
         log("Key is closed", "debug")
 
 
-def ProxyCheck():
+def ProxyCheck() -> bool:
+    """:returns: Status of proxy enable."""
     key = winreg.OpenKey(main_key_dir, main_path, 0, access=main_access_key)
 
     value: int = winreg.QueryValueEx(key, proxy_enable_key)[0]
@@ -210,4 +214,3 @@ if __name__ == "__main__":
     ProxyChange(protocol="socks", ip=ip_con, port=port_con, login=login, password=password)
     input("ENTER TO DISABLE PROXY...")
     ProxyOff()
-# print(os.environ.get("HTTP_PROXY"))

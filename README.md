@@ -1,6 +1,6 @@
 # Proxy-Changer
 
-Version: 0.37b
+Version: 0.37c
 
 Development Started: 10.10.22
 
@@ -24,7 +24,10 @@ File for logs configure: log_config.py
 from vpn_pro import ProxyChange, ProxyOff
 
 ProxyChange(protocol="https", ip='192.0.0.1', port='8080', login=login, password=password)
-input("ENTER TO DISABLE PROXY...")
+
+# Do something
+...
+
 ProxyOff()
 ```
 

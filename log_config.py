@@ -1,9 +1,10 @@
 import logging
 import datetime
 import os
+from typing import Any, NoReturn
 
 
-def get_name():
+def get_name() -> str:
     time = datetime.datetime.now().time().strftime("%X").replace(":", "-")
     name_file = "log_{}".format(time) + ".txt"
     return name_file
@@ -23,7 +24,7 @@ handler.setFormatter(formatter)
 logs.addHandler(handler)
 
 
-def log(message, mode: str, is_print=False, *args):
+def log(message: Any, mode: str, is_print=False, *args) -> NoReturn:
     global logs
     if mode == 'info':
         logs.info(message, *args)

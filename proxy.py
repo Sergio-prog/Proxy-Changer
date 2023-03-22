@@ -11,11 +11,16 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import vpn_pro
 
+__ver__ = vpn_pro.__ver__
+
 
 def click_on(button: QtWidgets.QPushButton, *args):
-    print(*args)
-    vpn_pro.ProxyChange(*args)
-    button.setText("Disable Proxy")
+    try:
+        print(*args)
+        vpn_pro.ProxyChange(*args)
+        button.setText("Disable Proxy")
+    except AssertionError as error:
+        print(error)
 
 
 def click_off(button: QtWidgets.QPushButton):
