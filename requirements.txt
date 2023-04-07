@@ -1,5 +1,3 @@
-platform
 PyQt5
-winreg
 
 # This file can used for installing python PIP packages.

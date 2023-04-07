@@ -1,6 +1,6 @@
 # Proxy-Changer
 
-Version: 0.37c
+Version: 0.37d
 
 Development Started: 10.10.22
 
@@ -33,7 +33,7 @@ ProxyOff()
 
 # Beta GUI version
 
-For GUI version, you need to start proxy.py
+For GUI version, you need to start ``proxy.py``
 
 ```bash
 python proxy.py

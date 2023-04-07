@@ -20,7 +20,7 @@ def click_on(button: QtWidgets.QPushButton, *args):
         vpn_pro.ProxyChange(*args)
         button.setText("Disable Proxy")
     except AssertionError as error:
-        print(error)
+        print("Not correct params, proxy was not changed.")
 
 
 def click_off(button: QtWidgets.QPushButton):
@@ -36,7 +36,7 @@ class Ui_MainWindow(object):
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(403, 379)
+        MainWindow.setFixedSize(400, 380)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
@@ -114,7 +114,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Proxy Changer v{ver}".format(ver=vpn_pro.__ver__)))
         self.pushButton.setText(_translate("MainWindow", "Change Proxy"))
         self.lineEdit.setPlaceholderText(_translate("MainWindow", "192.0.0.1"))
         self.label.setText(_translate("MainWindow", ":"))

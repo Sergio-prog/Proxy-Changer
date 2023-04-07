@@ -8,7 +8,7 @@ import sys
 from log_config import log
 from typing import NoReturn
 
-__ver__ = "0.37c"
+__ver__ = "0.37d"
 
 main_access_key = winreg.KEY_ALL_ACCESS
 
@@ -19,13 +19,16 @@ main_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings"  # HK
 sys_env_key = r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"  # HKEY_LOCAL_MACHINE (key for sys env variables)
 user_env_key = r"Environment"  # HKEY_CURRENT_USER (for user env variables)
 
+# Key names
 proxy_ip_key = "ProxyServer"
 proxy_enable_key = "ProxyEnable"
 proxy_non_key = "ProxyOverride"
 
+# Win reg types
 SZ_key = winreg.REG_SZ
 REG_key = winreg.REG_DWORD
 
+# Proxy settings
 proxy = {
     "protocol": "http",
     "protocol_prx": "HTTP_PROXY",
@@ -38,6 +41,7 @@ proxy = {
     "nonproxies": "<local>,localhost,127.0.0.1"
 }
 
+# OS Check
 platform = platform.system()
 
 if platform.startswith("Windows"):
@@ -66,7 +70,7 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
 
     assert (ip and port)
 
-    log("Log init", "debug")
+    log("Log init Proxy Changer {ver}".format(ver=__ver__), "debug")
     log(("Start func, params:", protocol, ip, port, login, password, proxy_exceptions), "debug")
 
     protocol = protocol.upper() if protocol.lower() in "http https ftp socks" else "HTTP"
@@ -77,6 +81,7 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
     proxy["password"] = password
     proxy["nonproxies"] = proxy_exceptions
 
+    # Proxy login
     if not login and not password:
         proxy["auth"] = False
         ip_auth = ""
@@ -84,27 +89,33 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
         proxy["auth"] = True
         ip_auth = "{log}:{pas}".format(log=proxy["login"], pas=proxy["password"])
 
+    # Proxy strings for keys
     ip_value = "{host}:{port_p}".format(host=proxy["host"], port_p=proxy["port"])
     ip_value_prt = "{prt}={ip}".format(prt=protocol.lower(), ip=ip_value)
 
+    # Full proxy string with protocol
     http_proxy_value = "{prt}://".format(prt=protocol.lower())
     http_proxy_value += ip_value if not proxy["auth"] else f"{ip_auth}@{ip_value}"
 
+    # Protocol string for keys
     protocol_proxy_value = "{}_PROXY".format(protocol.upper())
     proxy["protocol_prx"] = protocol_proxy_value
 
     log(("Try to create proxy settings", http_proxy_value), "info")
 
+    # Proxy enable in winreg
     env_edit_key(main_key_dir, main_path, proxy_enable_key, REG_key, int("1"))
     proxy["is_enable"] = "1"
 
+    # Add proxy string to winreg with protocols
     if protocol.lower() != "http":
         env_edit_key(main_key_dir, main_path, proxy_ip_key, SZ_key, ip_value_prt)
     else:
         env_edit_key(main_key_dir, main_path, proxy_ip_key, SZ_key, ip_value)
 
-    env_edit_key(main_key_dir, main_path, proxy_non_key, SZ_key, proxy["nonproxies"])
+    env_edit_key(main_key_dir, main_path, proxy_non_key, SZ_key, proxy["nonproxies"])  # Add non proxy
 
+    # Create Env variable with protocol name
     env_create_key(main_key_dir, user_env_key, protocol_proxy_value, http_proxy_value)
 
     os.environ[protocol_proxy_value] = http_proxy_value
@@ -113,7 +124,7 @@ def ProxyChange(protocol="http", ip="192.0.0.1", port="8080", login: str = None,
     return http_proxy_value
 
 
-def env_create_key(branch, subdir, envname, value="None", type=winreg.REG_SZ) -> NoReturn:
+def env_create_key(branch=None, subdir=None, envname=None, value=None, type=winreg.REG_SZ) -> NoReturn:
     envname = envname.upper()
     value = str(value)
 
